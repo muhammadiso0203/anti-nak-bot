@@ -27,7 +27,7 @@ fi
 
 APP_DIR="/root/anti-nak-bot"
 REPO_URL="https://github.com/muhammadiso0203/anti-nak-bot.git"
-DOMAIN="akbarovich.uz"
+DOMAIN="anti_nak.akbarovich.uz"
 PORT="8080"
 
 # 1. Tizim paketlarini yangilash va kerakli dasturlarni o'rnatish
@@ -77,7 +77,7 @@ PROTECT_PREMIUM=0
 
 DB_PATH=nakrutka.db
 
-WEBAPP_URL=https://akbarovich.uz
+WEBAPP_URL=https://anti_nak.akbarovich.uz
 WEBAPP_PORT=8080
 
 API_ID=24412350
@@ -92,7 +92,7 @@ NGINX_CONF="/etc/nginx/sites-available/$DOMAIN"
 cat << EOF > "$NGINX_CONF"
 server {
     listen 80;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name $DOMAIN akbarovich.uz www.akbarovich.uz;
 
     client_max_body_size 64M;
 
