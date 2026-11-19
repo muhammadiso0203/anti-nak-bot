@@ -489,16 +489,6 @@ WELCOME = (
     "3️⃣ Kanalda — Sozlamalar → <b>Yangi a'zolarni tasdiqlash</b>ni yoqing "
     "(shunda fake kanalga <i>kirishidan oldin</i> rad etiladi)\n"
     "4️⃣ Pastdagi <b>tugmalardan</b> foydalaning 👇\n\n"
-    "<b>Tugmalar:</b>\n"
-    f"{BTN_SCAN} — kanal ichidagi <b>eski</b> nakrutkalarni tozalash\n"
-    f"{BTN_PANEL} — rejim, chegara, qattiqlik\n"
-    f"{BTN_STATS} — statistika · {BTN_LOG} — hodisalar\n"
-    f"{BTN_PASSED} — o'tkazib yuborilganlar\n"
-    f"{BTN_ACCOUNT} — tozalash uchun qaysi akkauntni admin qilish kerak\n\n"
-    "<i>Qo'lda ham yozsa bo'ladi: /check (akkauntni tekshirish), /oq "
-    "(oq ro'yxat), /unban, /qattiq 0-3, /id.</i>\n\n"
-    "🧹 Tekshirish birinchi marta ishlatilganda bir marta "
-    "<b>login.bat</b> ni ishga tushirasiz (a'zolar ro'yxatini Telegram botga bermaydi)."
 )
 
 
