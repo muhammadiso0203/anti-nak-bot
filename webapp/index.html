@@ -193,8 +193,21 @@ function applyTheme(){
   if(t.button_color) r.setProperty('--brand', t.button_color);
 }
 
+function getInitData(){
+  if(tg && tg.initData) return tg.initData;
+  if(window.location.hash){
+    const p = new URLSearchParams(window.location.hash.substring(1));
+    if(p.get("tgWebAppData")) return p.get("tgWebAppData");
+  }
+  if(window.location.search){
+    const p = new URLSearchParams(window.location.search);
+    if(p.get("tgWebAppData")) return p.get("tgWebAppData");
+  }
+  return "";
+}
+
 async function api(path, body){
-  const init = tg ? tg.initData : "";
+  const init = getInitData();
   const res = await fetch(path, {
     method:'POST',
     headers:{'Content-Type':'application/json','X-Init-Data':init},
@@ -202,7 +215,7 @@ async function api(path, body){
   });
   if(!res.ok){
     const e = await res.json().catch(()=>({}));
-    throw Object.assign(new Error(e.error||res.status),{data:e,status:res.status});
+    throw Object.assign(new Error(e.error||(res.status===404?"Backend server topilmadi (404)":res.status)),{data:e,status:res.status});
   }
   return res.json();
 }
@@ -521,7 +534,9 @@ function App(){
   const [state, setState] = useState(null);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
-  const demo = !tg || !tg.initData;
+  const [loadErr, setLoadErr] = useState(null);
+  const initData = getInitData();
+  const demo = !initData;
 
   const flash = (m)=>{
     setToast(m);
@@ -530,16 +545,25 @@ function App(){
   };
 
   const load = useCallback(async ()=>{
-    if(demo){ setState(DEMO); setLoading(false); return; }
+    const curInit = getInitData();
+    if(!curInit){
+      setState(DEMO);
+      setLoading(false);
+      setLoadErr(null);
+      return;
+    }
+    setLoading(true);
+    setLoadErr(null);
     try {
       const data = await api('/api/state');
       setState(data);
     } catch(e) {
+      setLoadErr(e);
       flash("Yuklab bo'lmadi: " + (e.message || "xato"));
     } finally {
       setLoading(false);
     }
-  }, [demo]);
+  }, []);
 
   useEffect(()=>{
     if(tg){
@@ -628,10 +652,34 @@ function App(){
     } catch(e){ flash("O'chirib bo'lmadi"); return null; }
   };
 
-  if(loading || !state) {
+  if(loading) {
     return <div className="wrap" style={{display:'grid',placeItems:'center',height:'80vh'}}>
       <div className="spin"></div>
     </div>;
+  }
+
+  if(loadErr && !state) {
+    return (
+      <div className="wrap fade" style={{paddingTop:25}}>
+        <div className="card" style={{textAlign:'center',padding:'28px 18px'}}>
+          <div style={{fontSize:42,marginBottom:10}}>⚠️</div>
+          <h3 style={{margin:'0 0 8px',fontSize:17}}>Backend serverga ulanib bo'lmadi</h3>
+          <p style={{fontSize:12.5,color:'var(--hint)',lineHeight:1.5,margin:'0 0 16px'}}>
+            Veb-ilova Python backend serveri bilan bog'lana olmadi.<br/>
+            <b>Xatolik:</b> <code>{loadErr.message || "HTTP 404"}</code>
+          </p>
+          <div style={{background:'rgba(255,176,32,.1)',border:'1px solid rgba(255,176,32,.25)',borderRadius:12,padding:12,textAlign:'left',fontSize:12,color:'#ffd48a',lineHeight:1.45,marginBottom:16}}>
+            💡 <b>Buning sababi:</b> Sayt Vercel'da turibdi, lekin botingiz kompyuteringizda ishlayapti. Vercel kompyuteringizdagi botga ulanmagan.<br/><br/>
+            🚀 <b>Yechim:</b> Papkadagi <code>tunnel.bat</code> faylini ishga tushiring va berilgan Cloudflare havolasini <code>.env</code> dagi <code>WEBAPP_URL=</code> ga qo'ying.
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-add" style={{flex:1,padding:12}} onClick={load}>🔄 Qayta urinish</button>
+            <button className="btn-add" style={{flex:1,padding:12,background:'var(--card2)',border:'1px solid var(--line)'}}
+              onClick={()=>{ setState(DEMO); setLoadErr(null); }}>Demo rejimda ko'rish</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const s = state.stats, u = state.user || {};
@@ -643,7 +691,12 @@ function App(){
     <div className="wrap">
       {demo && (
         <div className="note">
-          👁 <div><b>Demo rejim.</b> Haqiqiy ma'lumotlar bot ichidagi Mini App orqali ochilganda ko'rinadi.</div>
+          👁 <div>
+            <b>Demo rejim faol.</b><br/>
+            Telegram xavfsizlik ma'lumotlari (<code>initData</code>) olinmadi. 
+            Sahifa brauzerda yoki oddiy matnli havola orqali ochilgan.<br/>
+            Haqiqiy kanallarni ko'rish uchun Telegram botingizdagi <b>«Ilova»</b> menyusi yoki <b>«Web App'ni ochish»</b> tugmasi orqali kiring.
+          </div>
         </div>
       )}
 

@@ -151,8 +151,21 @@ function applyTheme(){
   if(t.hint_color) r.setProperty('--hint', t.hint_color);
 }
 
+function getInitData(){
+  if(tg && tg.initData) return tg.initData;
+  if(window.location.hash){
+    const p = new URLSearchParams(window.location.hash.substring(1));
+    if(p.get("tgWebAppData")) return p.get("tgWebAppData");
+  }
+  if(window.location.search){
+    const p = new URLSearchParams(window.location.search);
+    if(p.get("tgWebAppData")) return p.get("tgWebAppData");
+  }
+  return "";
+}
+
 async function api(path, body){
-  const init = tg ? tg.initData : "";
+  const init = getInitData();
   const res = await fetch(path, {
     method:'POST',
     headers:{'Content-Type':'application/json','X-Init-Data':init},
@@ -160,7 +173,7 @@ async function api(path, body){
   });
   if(!res.ok){
     const e = await res.json().catch(()=>({}));
-    throw Object.assign(new Error(e.message||e.error||res.status),{data:e,status:res.status});
+    throw Object.assign(new Error(e.message||e.error||(res.status===404?"Backend server topilmadi (404)":res.status)),{data:e,status:res.status});
   }
   return res.json();
 }
@@ -185,17 +198,19 @@ function App(){
   };
 
   const load = useCallback(async ()=>{
-    if(!tg || !tg.initData){
-      setErr({status:401, message:"Iltimos, ushbu sahifani faqat botdagi «Admin Web App» tugmasi orqali oching."});
+    const curInit = getInitData();
+    if(!curInit){
+      setErr({status:401, message:"Iltimos, ushbu sahifani faqat botdagi «Admin Web App» tugmasi orqali oching (brauzerda yoki oddiy havola orqali ochib bo'lmaydi)."});
       setLoading(false);
       return;
     }
+    setLoading(true);
     try {
       const res = await api('/api/admin/state');
       setData(res);
       setErr(null);
     } catch(e) {
-      setErr({status:e.status||500, message:e.message||"Kirish taqiqlangan"});
+      setErr({status:e.status||500, message:e.message||"Xatolik yuz berdi"});
     } finally {
       setLoading(false);
     }
@@ -258,15 +273,28 @@ function App(){
     return <div className="wrap" style={{display:'grid',placeItems:'center',height:'80vh'}}><div className="spin"></div></div>;
   }
 
-  // Ruxsat yo'q bo'lsa (Faqat admin kira oladi)
+  // Ruxsat yo'q bo'lsa yoki Backend topilmasa
   if(err){
+    const is404 = err.status === 404;
     return (
-      <div className="wrap">
-        <div className="lock-screen fade">
-          <div className="lock-icon">⛔️</div>
-          <h2>Kirish taqiqlangan</h2>
-          <p>{err.message || "Bu sahifa faqat bot egalari (ADMIN_IDS) uchun mo'ljallangan."}</p>
-          <div className="id-box">Xavfsiz tekshiruv: Ruxsat berilmadi</div>
+      <div className="wrap fade" style={{paddingTop:20}}>
+        <div className="card" style={{textAlign:'center',padding:'28px 18px'}}>
+          <div style={{fontSize:42,marginBottom:10}}>{is404 ? "⚠️" : "⛔️"}</div>
+          <h2 style={{margin:'0 0 8px',fontSize:18}}>
+            {is404 ? "Backend serverga ulanib bo'lmadi" : "Kirish taqiqlangan"}
+          </h2>
+          <p style={{fontSize:13,color:'var(--hint)',lineHeight:1.5,margin:'0 auto 16px',maxWidth:340}}>
+            {err.message || "Bu sahifa faqat bot egalari (ADMIN_IDS) uchun mo'ljallangan."}
+          </p>
+          {is404 ? (
+            <div style={{background:'rgba(255,176,32,.1)',border:'1px solid rgba(255,176,32,.25)',borderRadius:12,padding:12,textAlign:'left',fontSize:12,color:'#ffd48a',lineHeight:1.45,marginBottom:16}}>
+              💡 <b>Sababi:</b> Sayt Vercel'da turibdi, lekin botingiz kompyuteringizda ishlayapti.<br/><br/>
+              🚀 <b>Yechim:</b> Papkadagi <code>tunnel.bat</code> ni yoqing va berilgan Cloudflare havolasini <code>.env</code> dagi <code>WEBAPP_URL=</code> ga qo'ying.
+            </div>
+          ) : (
+            <div className="id-box" style={{marginBottom:16}}>Xavfsiz tekshiruv: Ruxsat berilmadi</div>
+          )}
+          <button className="btn-gold" style={{width:'100%',padding:12}} onClick={load}>🔄 Qayta urinish</button>
         </div>
       </div>
     );
