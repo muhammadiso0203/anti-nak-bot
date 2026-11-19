@@ -467,7 +467,7 @@ def main_menu_kb() -> ReplyKeyboardMarkup:
     """Pastda doimiy turadigan tugmalar (qo'lda buyruq yozish shart emas)."""
     rows: list[list[KeyboardButton]] = []
     if config.WEBAPP_URL:
-        rows.append([KeyboardButton(text="📱 Mini App", web_app=WebAppInfo(url=config.WEBAPP_URL))])
+        rows.append([KeyboardButton(text="📱 Mini App")])
     rows.extend([
         [KeyboardButton(text=BTN_SCAN)],
         [KeyboardButton(text=BTN_PANEL), KeyboardButton(text=BTN_STATS)],
@@ -606,6 +606,7 @@ def panel_text(st: dict) -> str:
 
 
 @router.message(Command("app", "webapp", "miniapp"))
+@router.message(F.text == "📱 Mini App")
 async def cmd_webapp(msg: Message) -> None:
     if not config.WEBAPP_URL:
         await msg.answer(

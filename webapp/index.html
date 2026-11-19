@@ -535,8 +535,7 @@ function App(){
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState(null);
-  const initData = getInitData();
-  const demo = !initData;
+  const [demo, setDemo] = useState(false);
 
   const flash = (m)=>{
     setToast(m);
@@ -544,14 +543,16 @@ function App(){
     if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
   };
 
-  const load = useCallback(async ()=>{
-    const curInit = getInitData();
+  const load = useCallback(async (forcedInit)=>{
+    const curInit = forcedInit || getInitData();
     if(!curInit){
+      setDemo(true);
       setState(DEMO);
       setLoading(false);
       setLoadErr(null);
       return;
     }
+    setDemo(false);
     setLoading(true);
     setLoadErr(null);
     try {
@@ -567,12 +568,24 @@ function App(){
 
   useEffect(()=>{
     if(tg){
-      tg.ready();
-      tg.expand();
-      applyTheme();
+      try { tg.ready(); tg.expand(); applyTheme(); } catch(e){}
       if(tg.onEvent) tg.onEvent("themeChanged", applyTheme);
     }
-    load();
+    const init = getInitData();
+    if(init){
+      load(init);
+    } else {
+      setTimeout(()=>{
+        const retryInit = getInitData();
+        if(retryInit){
+          load(retryInit);
+        } else {
+          setDemo(true);
+          setState(DEMO);
+          setLoading(false);
+        }
+      }, 200);
+    }
   }, [load]);
 
   const onSet = async (chatId, key, value)=>{
