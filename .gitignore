@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Maxfiy ma'lumotlar va sozlamalar
+.env
+
+# SQLite ma'lumotlar bazasi
+*.db
+*.sqlite3
+*.db-journal
+
+# Telethon / MTProto sessiyalari
+*.session
+*.session-journal
+
+# Hisobotlar va eksport fayllari
+*.csv
+hisobot_*
+
+# Arxivlar va vaqtinchalik fayllar
+*.zip
+*.tar.gz
+Claude outputs/
+cloudflared.exe

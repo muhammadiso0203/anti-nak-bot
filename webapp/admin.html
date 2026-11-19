@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Nakrutka Blocker — Bosh Admin Paneli</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#101726; --card:#161f33; --card2:#1e2942;
+    --text:#eef2fb; --hint:#8b97b4; --line:rgba(255,255,255,.08);
+    --gold:#f59e0b; --gold2:#fbbf24; --brand:#6d5efc; --brand2:#8b7bff;
+    --accent:#2dd4a7; --danger:#ff5d6c; --warn:#ffb020; --shadow:0 12px 34px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1100px 500px at 100% -10%, rgba(245,158,11,.15), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(109,94,252,.15), transparent 55%),
+      var(--bg);
+    color:var(--text); min-height:100vh; overflow-x:hidden;
+  }
+  .wrap{max-width:620px;margin:0 auto;padding:14px 14px 50px;}
+  .fade{animation:fade .35s ease both;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  @keyframes pop{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:none;}}
+  .spin{width:32px;height:32px;border-radius:50%;border:3px solid var(--line);
+    border-top-color:var(--gold);animation:sp .9s linear infinite;display:inline-block;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* Top header */
+  .top-bar{display:flex;align-items:center;gap:12px;margin:4px 0 16px;}
+  .crown-logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--gold),#d97706);
+    box-shadow:0 8px 22px rgba(245,158,11,.4);font-size:24px;flex:none;}
+  .top-bar h1{font-size:18.5px;margin:0;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
+  .top-bar p{margin:2px 0 0;color:var(--hint);font-size:12px;}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .ava{width:36px;height:36px;border-radius:50%;object-fit:cover;
+    background:var(--card2);border:1px solid var(--line);}
+  .ava.ph{display:grid;place-items:center;font-size:14px;color:var(--hint);font-weight:700;}
+  .btn-icon{width:36px;height:36px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+    color:var(--text);display:grid;place-items:center;cursor:pointer;font-size:16px;transition:.2s;}
+  .btn-icon:active{transform:scale(.92);}
+
+  .badge-bar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+    padding:4px 9px;border-radius:999px;}
+  .badge.crown{background:rgba(245,158,11,.18);color:var(--gold2);border:1px solid rgba(245,158,11,.3);}
+  .badge.ok{background:rgba(45,212,167,.15);color:var(--accent);}
+  .badge.warn{background:rgba(255,176,32,.15);color:var(--warn);}
+  .badge.danger{background:rgba(255,93,108,.15);color:var(--danger);}
+
+  /* Tabs navigation */
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:16px;
+    background:var(--card2);padding:4px;border-radius:15px;border:1px solid var(--line);}
+  .tab-btn{border:none;background:transparent;color:var(--hint);font-size:11px;font-weight:700;
+    padding:9px 2px;border-radius:11px;cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;gap:3px;transition:.2s;}
+  .tab-btn span{font-size:14px;}
+  .tab-btn.active{background:linear-gradient(135deg,var(--gold),#d97706);color:#fff;
+    box-shadow:0 4px 14px rgba(245,158,11,.35);}
+
+  /* Stats grid */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;}
+  .tile{background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);border-radius:16px;padding:12px 10px 10px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .tile .n{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;}
+  .tile .l{color:var(--hint);font-size:11px;margin-top:5px;}
+  .tile.gold .n{color:var(--gold2);}
+  .tile.danger .n{color:var(--danger);}
+  .tile.accent .n{color:var(--accent);}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:17px;
+    padding:14px;margin-bottom:12px;box-shadow:var(--shadow);animation:pop .3s ease both;}
+  .card-top{display:flex;align-items:center;gap:11px;}
+  .ci{width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;
+    font-size:18px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(109,94,252,.2));}
+  .card-tt{font-weight:700;font-size:14.5px;line-height:1.2;}
+  .card-sub{color:var(--hint);font-size:11px;margin-top:2px;}
+  .blk-count{margin-left:auto;text-align:right;flex:none;}
+  .blk-count b{font-size:18px;font-weight:800;color:var(--danger);}
+  .blk-count span{display:block;color:var(--hint);font-size:10px;}
+
+  .sw{width:42px;height:24px;border-radius:999px;background:var(--card2);
+    border:1px solid var(--line);position:relative;transition:.25s;cursor:pointer;flex:none;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+    background:#fff;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+  .sw.on{background:linear-gradient(135deg,var(--accent),#1bb98c);border-color:transparent;}
+  .sw.on::after{left:20px;}
+
+  .seg{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap;}
+  .seg button{flex:1;min-width:54px;padding:6px 4px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--hint);font-size:11px;font-weight:600;cursor:pointer;transition:.2s;}
+  .seg button.sel{background:linear-gradient(135deg,var(--gold),#d97706);color:#fff;
+    border-color:transparent;box-shadow:0 3px 10px rgba(245,158,11,.35);}
+
+  .input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    color:var(--text);font-size:13px;outline:none;}
+  .input:focus{border-color:var(--gold);}
+  .textarea{width:100%;height:100px;background:var(--card2);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit;}
+  .textarea:focus{border-color:var(--gold);}
+
+  .btn-gold{width:100%;padding:11px;border:none;border-radius:12px;font-size:13px;font-weight:700;
+    color:#fff;background:linear-gradient(135deg,var(--gold),#d97706);cursor:pointer;
+    box-shadow:0 4px 14px rgba(245,158,11,.35);transition:.2s;}
+  .btn-gold:active{transform:scale(.98);}
+  .btn-danger{padding:6px 10px;border:none;border-radius:9px;background:rgba(255,93,108,.15);
+    color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;}
+
+  /* Log items */
+  .log-item{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;
+    margin-bottom:8px;font-size:12px;}
+  .log-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .chip{padding:2px 7px;border-radius:6px;font-size:10px;background:var(--card2);color:var(--hint);border:1px solid var(--line);}
+  .chip.score{background:rgba(255,93,108,.15);color:var(--danger);font-weight:700;border-color:transparent;}
+
+  /* Lock screen */
+  .lock-screen{text-align:center;padding:70px 20px;}
+  .lock-icon{font-size:58px;margin-bottom:16px;}
+  .lock-screen h2{font-size:20px;margin:0 0 8px;color:var(--danger);}
+  .lock-screen p{font-size:13.5px;color:var(--hint);line-height:1.5;max-width:320px;margin:0 auto 16px;}
+  .id-box{display:inline-block;background:var(--card2);border:1px solid var(--line);padding:7px 14px;
+    border-radius:999px;font-size:12px;font-weight:700;color:var(--text);}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0b0f18;
+    color:#fff;padding:10px 18px;border-radius:12px;font-size:12.5px;box-shadow:var(--shadow);
+    border:1px solid var(--line);z-index:99;animation:pop .25s ease;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+function applyTheme(){
+  if(!tg || !tg.themeParams) return;
+  const t = tg.themeParams, r = document.documentElement.style;
+  if(t.bg_color) r.setProperty('--bg', t.bg_color);
+  if(t.secondary_bg_color) r.setProperty('--card', t.secondary_bg_color);
+  if(t.text_color) r.setProperty('--text', t.text_color);
+  if(t.hint_color) r.setProperty('--hint', t.hint_color);
+}
+
+async function api(path, body){
+  const init = tg ? tg.initData : "";
+  const res = await fetch(path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Init-Data':init},
+    body:JSON.stringify(Object.assign({initData:init}, body||{}))
+  });
+  if(!res.ok){
+    const e = await res.json().catch(()=>({}));
+    throw Object.assign(new Error(e.message||e.error||res.status),{data:e,status:res.status});
+  }
+  return res.json();
+}
+
+function Toast({msg}){ return msg ? <div className="toast">{msg}</div> : null; }
+
+function App(){
+  const [tab, setTab] = useState("chats");
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [bcText, setBcText] = useState("");
+  const [bcBusy, setBcBusy] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [search, setSearch] = useState("");
+
+  const flash = (m)=>{
+    setToast(m);
+    setTimeout(()=>setToast(""), 2200);
+    if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+  };
+
+  const load = useCallback(async ()=>{
+    if(!tg || !tg.initData){
+      setErr({status:401, message:"Iltimos, ushbu sahifani faqat botdagi «Admin Web App» tugmasi orqali oching."});
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await api('/api/admin/state');
+      setData(res);
+      setErr(null);
+    } catch(e) {
+      setErr({status:e.status||500, message:e.message||"Kirish taqiqlangan"});
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadLogs = useCallback(async ()=>{
+    try {
+      const res = await api('/api/admin/logs');
+      setLogs(res.events || []);
+    } catch(e){}
+  }, []);
+
+  useEffect(()=>{
+    if(tg){
+      tg.ready();
+      tg.expand();
+      applyTheme();
+      if(tg.onEvent) tg.onEvent("themeChanged", applyTheme);
+    }
+    load();
+  }, [load]);
+
+  useEffect(()=>{
+    if(tab === "logs") loadLogs();
+  }, [tab, loadLogs]);
+
+  const onUpdateChat = async (chatId, key, value)=>{
+    try {
+      await api('/api/admin/chat_settings', {chat_id: chatId, key, value});
+      flash("Sozlama yangilandi ✓");
+      load();
+    } catch(e){ flash("Yangilab bo'lmadi"); }
+  };
+
+  const onRemoveChat = async (chatId)=>{
+    if(!confirm("Kanalni bazadan o'chirilsinmi?")) return;
+    try {
+      await api('/api/admin/remove_chat', {chat_id: chatId});
+      flash("Kanal o'chirildi ✓");
+      load();
+    } catch(e){ flash("O'chirib bo'lmadi"); }
+  };
+
+  const onBroadcast = async ()=>{
+    if(!bcText.trim()) return;
+    if(!confirm(`Barcha ${data.customers.length} ta mijozga xabar yuborilsinmi?`)) return;
+    setBcBusy(true);
+    try {
+      const res = await api('/api/admin/broadcast', {text: bcText});
+      flash(`✅ Xabar yuborildi: ${res.sent} ta yetkazildi`);
+      setBcText("");
+    } catch(e){
+      flash("Xabarnoma yuborilmadi");
+    } finally {
+      setBcBusy(false);
+    }
+  };
+
+  if(loading){
+    return <div className="wrap" style={{display:'grid',placeItems:'center',height:'80vh'}}><div className="spin"></div></div>;
+  }
+
+  // Ruxsat yo'q bo'lsa (Faqat admin kira oladi)
+  if(err){
+    return (
+      <div className="wrap">
+        <div className="lock-screen fade">
+          <div className="lock-icon">⛔️</div>
+          <h2>Kirish taqiqlangan</h2>
+          <p>{err.message || "Bu sahifa faqat bot egalari (ADMIN_IDS) uchun mo'ljallangan."}</p>
+          <div className="id-box">Xavfsiz tekshiruv: Ruxsat berilmadi</div>
+        </div>
+      </div>
+    );
+  }
+
+  const s = data.stats || {}, cfg = data.config || {};
+  const filteredChats = (data.chats || []).filter(c=>
+    (c.title||"").toLowerCase().includes(search.toLowerCase()) || String(c.id).includes(search)
+  );
+
+  return (
+    <div className="wrap">
+      <div className="top-bar fade">
+        <div className="crown-logo">👑</div>
+        <div>
+          <h1>Bosh Admin Paneli</h1>
+          <p>Butun botni to'liq boshqarish</p>
+        </div>
+        <div className="top-actions">
+          <button className="btn-icon" onClick={()=>{ flash("Yangilanmoqda…"); load(); }}>🔄</button>
+          {data.admin && data.admin.photo_url ? (
+            <img className="ava" src={data.admin.photo_url} alt=""/>
+          ) : (
+            <div className="ava ph">A</div>
+          )}
+        </div>
+      </div>
+
+      <div className="badge-bar fade">
+        <span className="badge crown">⭐ Bosh Administrator</span>
+        {data.scan && data.scan.ready ? (
+          <span className="badge ok">✓ Skaner: {data.scan.account}</span>
+        ) : (
+          <span className="badge warn">⚠ Skaner ulanmagan</span>
+        )}
+      </div>
+
+      <div className="stats fade">
+        <div className="tile danger">
+          <div className="n">{s.blocked}</div>
+          <div className="l">Jami bloklangan</div>
+        </div>
+        <div className="tile">
+          <div className="n">{s.blocked_today}</div>
+          <div className="l">Bugun bloklangan</div>
+        </div>
+        <div className="tile accent">
+          <div className="n">{s.passed}</div>
+          <div className="l">Haqiqiy a'zolar</div>
+        </div>
+        <div className="tile">
+          <div className="n">{data.chats.length}</div>
+          <div className="l">Ulangan kanallar</div>
+        </div>
+        <div className="tile gold">
+          <div className="n">{data.customers.length}</div>
+          <div className="l">Jami mijozlar</div>
+        </div>
+        <div className="tile">
+          <div className="n">{s.total}</div>
+          <div className="l">Jami tekshirilgan</div>
+        </div>
+      </div>
+
+      <div className="tabs">
+        <button className={"tab-btn"+(tab==="chats"?" active":"")} onClick={()=>setTab("chats")}>
+          <span>📣</span> Kanallar
+        </button>
+        <button className={"tab-btn"+(tab==="custs"?" active":"")} onClick={()=>setTab("custs")}>
+          <span>👥</span> Mijozlar
+        </button>
+        <button className={"tab-btn"+(tab==="bc"?" active":"")} onClick={()=>setTab("bc")}>
+          <span>📢</span> Xabar
+        </button>
+        <button className={"tab-btn"+(tab==="logs"?" active":"")} onClick={()=>setTab("logs")}>
+          <span>📜</span> Loglar
+        </button>
+        <button className={"tab-btn"+(tab==="cfg"?" active":"")} onClick={()=>setTab("cfg")}>
+          <span>⚙️</span> Tizim
+        </button>
+      </div>
+
+      {tab === "chats" && (
+        <div className="fade">
+          <input className="input" placeholder="🔍 Kanal nomi yoki Chat ID bo'yicha qidiruv…"
+            value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
+
+          {filteredChats.map(c=>(
+            <div key={c.id} className="card">
+              <div className="card-top">
+                <div className="ci">{c.type==="channel"?"📣":"👥"}</div>
+                <div style={{minWidth:0,flex:1}}>
+                  <div className="card-tt">{c.title}</div>
+                  <div className="card-sub">
+                    ID: <code>{c.id}</code> · Mijoz: {c.added_by_name || c.added_by || "Ega"}
+                  </div>
+                </div>
+                <div className="blk-count">
+                  <b>{c.blocked}</b>
+                  <span>bloklangan</span>
+                </div>
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12}}>
+                <span style={{fontSize:12,color:'var(--hint)'}}>🛡 Himoya holati:</span>
+                <div className={"sw"+(c.enabled?" on":"")} onClick={()=>onUpdateChat(c.id, "enabled", !c.enabled)}></div>
+              </div>
+
+              <div className="seg">
+                {Object.keys(data.mode_labels||{}).map(m=>(
+                  <button key={m} className={c.mode===m?"sel":""} onClick={()=>onUpdateChat(c.id,"mode",m)}>
+                    {data.mode_labels[m]}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,fontSize:12}}>
+                <span style={{color:'var(--hint)'}}>Chegara: <b>{c.threshold} ball</b> (Qattiqlik: {c.strict})</span>
+                <button className="btn-danger" onClick={()=>onRemoveChat(c.id)}>🗑 O'chirish</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "custs" && (
+        <div className="fade">
+          <p style={{fontSize:12,color:'var(--hint)',margin:'0 0 12px'}}>
+            👥 Botni o'z kanallariga qo'shgan barcha mijozlar (adminlar) ro'yxati:
+          </p>
+          {data.customers.map(cu=>(
+            <div key={cu.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:14}}>{cu.name}</div>
+                <div style={{fontSize:11.5,color:'var(--hint)',marginTop:2}}>
+                  ID: <code>{cu.id}</code> · Kanallari: <b>{cu.channels_count} ta</b>
+                </div>
+              </div>
+              <a href={`tg://user?id=${cu.id}`} style={{textDecoration:'none'}} className="btn-danger">
+                💬 Yozish
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "bc" && (
+        <div className="fade">
+          <div className="card">
+            <h3 style={{margin:'0 0 8px',fontSize:15}}>📢 Barcha mijozlarga xabarnoma</h3>
+            <p style={{fontSize:12,color:'var(--hint)',margin:'0 0 12px',lineHeight:1.45}}>
+              Yozilgan xabar bot nomidan ushbu botni ishlatayotgan barcha {data.customers.length} ta kanal egalariga shaxsiy xabar sifatida yuboriladi.
+            </p>
+            <textarea className="textarea" placeholder="Xabarnoma matnini kiriting…"
+              value={bcText} onChange={e=>setBcText(e.target.value)}></textarea>
+            <button className="btn-gold" style={{marginTop:12}} disabled={bcBusy} onClick={onBroadcast}>
+              {bcBusy ? "Yuborilmoqda…" : `🚀 ${data.customers.length} ta mijozga yuborish`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "logs" && (
+        <div className="fade">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <span style={{fontSize:12,color:'var(--hint)'}}>Oxirgi global hodisalar:</span>
+            <button className="btn-icon" style={{width:30,height:30}} onClick={loadLogs}>🔄</button>
+          </div>
+          {logs.map(e=>(
+            <div key={e.id} className="log-item">
+              <div className="log-hd">
+                <span style={{fontWeight:700,color:'var(--gold2)'}}>{e.chat_title}</span>
+                <span style={{fontSize:10.5,color:'var(--hint)'}}>{e.time_str}</span>
+              </div>
+              <div style={{fontSize:12,margin:'2px 0'}}>
+                <b>{e.action}</b> · {e.name || e.username || e.user_id}
+              </div>
+              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:5}}>
+                <span className="chip score">{e.score} ball</span>
+                <span className="chip">ID: {e.user_id}</span>
+                {(e.reasons||[]).map((r,i)=><span key={i} className="chip">{r}</span>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "cfg" && (
+        <div className="fade">
+          <div className="card">
+            <h3 style={{margin:'0 0 10px',fontSize:15}}>⚙️ Tizim konfiguratsiyasi (.env)</h3>
+            <div style={{display:'grid',gap:8,fontSize:12.5}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Standart rejim:</span>
+                <b>{cfg.mode}</b>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Standart chegara:</span>
+                <b>{cfg.threshold} ball</b>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Burst oynasi (sekund):</span>
+                <b>{cfg.burst_window}s</b>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Burst limiti (odam):</span>
+                <b>{cfg.burst_limit} ta</b>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Avtoskaner vaqti:</span>
+                <b>{cfg.auto_scan_hours ? `${cfg.auto_scan_hours} soatda bir` : "O'chiq"}</b>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--hint)'}}>Lokal server porti:</span>
+                <b>{cfg.port}</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

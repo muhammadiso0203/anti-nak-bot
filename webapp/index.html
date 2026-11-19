@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Nakrutka Blocker — Web App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1420; --bg2:#141b2d; --card:#1a2235; --card2:#212b42;
+    --text:#eef2fb; --hint:#8b97b4; --line:rgba(255,255,255,.08);
+    --brand:#6d5efc; --brand2:#8b7bff; --accent:#2dd4a7; --danger:#ff5d6c;
+    --warn:#ffb020; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(109,94,252,.18), transparent 60%),
+      radial-gradient(1000px 500px at -10% 10%, rgba(45,212,167,.12), transparent 55%),
+      var(--bg);
+    color:var(--text); min-height:100vh; overflow-x:hidden;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 44px;}
+  .fade{animation:fade .4s ease both;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  @keyframes pop{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:none;}}
+  .spin{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);
+    border-top-color:var(--brand);animation:sp .9s linear infinite;display:inline-block;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* header */
+  .top-bar{display:flex;align-items:center;gap:12px;margin:4px 0 16px;}
+  .logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));
+    box-shadow:0 8px 22px rgba(109,94,252,.45);font-size:22px;flex:none;}
+  .top-bar h1{font-size:18px;margin:0;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
+  .top-bar p{margin:2px 0 0;color:var(--hint);font-size:12px;}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .ava{width:36px;height:36px;border-radius:50%;object-fit:cover;
+    background:var(--card2);border:1px solid var(--line);}
+  .ava.ph{display:grid;place-items:center;font-size:14px;color:var(--hint);font-weight:700;}
+  .btn-icon{width:36px;height:36px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+    color:var(--text);display:grid;place-items:center;cursor:pointer;font-size:16px;transition:.2s;}
+  .btn-icon:active{transform:scale(.92);}
+
+  .badge-bar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+    padding:4px 9px;border-radius:999px;}
+  .badge.owner{background:rgba(109,94,252,.16);color:var(--brand2);}
+  .badge.ok{background:rgba(45,212,167,.15);color:var(--accent);}
+  .badge.warn{background:rgba(255,176,32,.15);color:var(--warn);}
+  .badge.danger{background:rgba(255,93,108,.15);color:var(--danger);}
+
+  /* navigation tabs */
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;
+    background:var(--card2);padding:4px;border-radius:15px;border:1px solid var(--line);}
+  .tab-btn{border:none;background:transparent;color:var(--hint);font-size:12px;font-weight:700;
+    padding:9px 4px;border-radius:11px;cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;gap:3px;transition:.2s;}
+  .tab-btn span{font-size:14px;}
+  .tab-btn.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    box-shadow:0 4px 14px rgba(109,94,252,.35);}
+
+  /* stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+  .tile{background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);border-radius:17px;padding:13px 13px 11px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .tile .ic{position:absolute;right:10px;top:10px;font-size:16px;opacity:.5;}
+  .tile .n{font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1;}
+  .tile .l{color:var(--hint);font-size:11.5px;margin-top:5px;}
+  .tile.a .n{color:var(--danger);} .tile.b .n{color:var(--accent);}
+
+  /* cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:14px;margin-bottom:13px;box-shadow:var(--shadow);animation:pop .3s ease both;}
+  .card-top{display:flex;align-items:center;gap:11px;}
+  .ci{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    font-size:18px;background:linear-gradient(135deg,rgba(109,94,252,.3),rgba(45,212,167,.22));}
+  .card-tt{font-weight:700;font-size:14.5px;line-height:1.2;}
+  .card-sub{color:var(--hint);font-size:11.5px;margin-top:3px;}
+  .blk-count{margin-left:auto;text-align:right;flex:none;}
+  .blk-count b{font-size:18px;font-weight:800;color:var(--danger);}
+  .blk-count span{display:block;color:var(--hint);font-size:10.5px;}
+
+  .row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+  .row .lab{font-size:12.5px;color:var(--hint);}
+  .sw{margin-left:auto;width:44px;height:26px;border-radius:999px;background:var(--card2);
+    border:1px solid var(--line);position:relative;transition:.25s;cursor:pointer;flex:none;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+  .sw.on{background:linear-gradient(135deg,var(--accent),#1bb98c);border-color:transparent;}
+  .sw.on::after{left:20px;}
+
+  .seg{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+  .seg button{flex:1;min-width:60px;padding:7px 5px;border-radius:11px;border:1px solid var(--line);
+    background:var(--card2);color:var(--hint);font-size:11.5px;font-weight:600;cursor:pointer;transition:.2s;}
+  .seg button.sel{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    border-color:transparent;box-shadow:0 4px 12px rgba(109,94,252,.35);}
+
+  .presets-box{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+  .presets-box button{flex:1;min-width:54px;padding:6px 4px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);color:var(--hint);font-size:11px;font-weight:600;cursor:pointer;transition:.2s;}
+  .presets-box button:hover{background:rgba(255,255,255,.08);color:var(--text);}
+  .presets-box button:active{transform:scale(.95);}
+
+  .slider{margin-top:12px;}
+  .slider .hd{display:flex;justify-content:space-between;font-size:12px;color:var(--hint);margin-bottom:6px;}
+  .slider .hd b{color:var(--text);font-size:12.5px;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:999px;
+    background:linear-gradient(90deg,var(--brand) var(--p,50%),var(--card2) var(--p,50%));outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:#fff;box-shadow:0 2px 7px rgba(0,0,0,.5);cursor:pointer;border:3px solid var(--brand);}
+
+  .scanbtn{margin-top:13px;width:100%;padding:11px;border:none;border-radius:13px;font-size:13.5px;
+    font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    box-shadow:0 6px 18px rgba(109,94,252,.35);transition:.2s;display:flex;align-items:center;
+    justify-content:center;gap:7px;}
+  .scanbtn:active{transform:scale(.98);}
+  .scanbtn.busy{opacity:.7;pointer-events:none;}
+
+  /* pending scan box */
+  .pending-box{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3);border-radius:15px;
+    padding:13px;margin-top:12px;}
+  .pending-box h4{margin:0 0 7px;font-size:13.5px;color:#ffd48a;display:flex;align-items:center;gap:6px;}
+  .fakes-list{max-height:160px;overflow-y:auto;display:grid;gap:5px;margin:9px 0 12px;padding-right:4px;}
+  .fake-item{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+    font-size:11.5px;display:flex;align-items:center;justify-content:space-between;}
+  .fake-item .name{font-weight:600;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fake-item .score{color:var(--danger);font-weight:700;}
+  .pending-actions{display:flex;gap:7px;}
+  .btn-apply{flex:1;padding:10px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--danger),#e03a4c);
+    color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(255,93,108,.35);}
+  .btn-cancel{padding:10px 14px;border:1px solid var(--line);border-radius:11px;background:var(--card2);
+    color:var(--hint);font-size:12.5px;font-weight:600;cursor:pointer;}
+  .btn-apply:active, .btn-cancel:active{transform:scale(.96);}
+
+  /* logs & events feed */
+  .log-item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px;
+    margin-bottom:8px;font-size:12px;animation:fade .3s ease both;}
+  .log-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+  .log-user{font-weight:700;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;}
+  .log-time{color:var(--hint);font-size:11px;}
+  .log-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+  .chip{padding:2px 7px;border-radius:6px;font-size:10.5px;background:var(--card2);color:var(--hint);border:1px solid var(--line);}
+  .chip.score{background:rgba(255,93,108,.15);color:var(--danger);font-weight:700;border-color:transparent;}
+
+  /* whitelist */
+  .wl-add{display:flex;gap:8px;margin-bottom:14px;}
+  .input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    color:var(--text);font-size:13px;outline:none;}
+  .input:focus{border-color:var(--brand);}
+  .btn-add{padding:10px 16px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .wl-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;
+    margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;}
+
+  .select-ch{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;
+    color:var(--text);font-size:13px;margin-bottom:14px;outline:none;}
+  .select-ch option{background:var(--card);color:var(--text);}
+
+  .empty{text-align:center;padding:40px 15px;color:var(--hint);}
+  .empty .em{font-size:40px;margin-bottom:10px;}
+  .empty h3{color:var(--text);margin:0 0 6px;font-size:16px;}
+  .empty p{font-size:12.5px;line-height:1.5;margin:0;}
+
+  .note{display:flex;gap:9px;align-items:flex-start;background:rgba(255,176,32,.1);
+    border:1px solid rgba(255,176,32,.25);border-radius:13px;padding:10px 12px;margin-bottom:14px;
+    font-size:12px;color:#ffd48a;line-height:1.4;}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0b0f18;
+    color:#fff;padding:10px 18px;border-radius:12px;font-size:12.5px;box-shadow:var(--shadow);
+    border:1px solid var(--line);z-index:99;animation:pop .25s ease;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+function applyTheme(){
+  if(!tg || !tg.themeParams) return;
+  const t = tg.themeParams, r = document.documentElement.style;
+  if(t.bg_color) r.setProperty('--bg', t.bg_color);
+  if(t.secondary_bg_color) r.setProperty('--card', t.secondary_bg_color);
+  if(t.text_color) r.setProperty('--text', t.text_color);
+  if(t.hint_color) r.setProperty('--hint', t.hint_color);
+  if(t.button_color) r.setProperty('--brand', t.button_color);
+}
+
+async function api(path, body){
+  const init = tg ? tg.initData : "";
+  const res = await fetch(path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Init-Data':init},
+    body:JSON.stringify(Object.assign({initData:init}, body||{}))
+  });
+  if(!res.ok){
+    const e = await res.json().catch(()=>({}));
+    throw Object.assign(new Error(e.error||res.status),{data:e,status:res.status});
+  }
+  return res.json();
+}
+
+const DEMO = {
+  user:{id:1,first_name:"Siz",username:"demo_user"}, is_owner:true,
+  scan_account:"@skaner_bot", scan_ready:true,
+  mode_labels:{ban:"Bloklash",kick:"Chiqarish",mute:"Ovoz o'chirish",report:"Faqat xabar"},
+  presets:{
+    soft:{label:"🌱 Yumshoq",thr:65,strict:0},
+    balanced:{label:"⚖️ Standart",thr:50,strict:0},
+    hard:{label:"⚡️ Qattiq",thr:42,strict:1},
+    iron:{label:"🔒 Temir",thr:34,strict:2},
+    max:{label:"🧱 Maksimal",thr:25,strict:3}
+  },
+  stats:{blocked:128,blocked_today:14,passed:342,total:470,failed:0},
+  channels:[
+    {
+      id:-1001,title:"Mening asosiy kanalim",type:"channel",enabled:true,mode:"ban",
+      threshold:50,strict:1,blocked:92,whitelist_count:3,added_by_name:"Siz",
+      pending:{
+        count:2, title:"Mening asosiy kanalim",
+        fakes:[{id:889901,ism:"FakeBot_1",username:"faker1",ball:88},{id:889902,ism:"Arab_User",username:"",ball:94}]
+      }
+    },
+    {id:-1002,title:"Muloqot guruhi",type:"supergroup",enabled:true,mode:"report",threshold:60,strict:0,blocked:36,whitelist_count:1,added_by_name:"Siz",pending:null}
+  ],
+};
+
+function Toast({msg}){ return msg ? <div className="toast">{msg}</div> : null; }
+function Switch({on,onClick}){ return <div className={"sw"+(on?" on":"")} onClick={onClick}></div>; }
+
+function ChannelCard({ch, modeLabels, presets, onSet, onScan, onScanAction}){
+  const [busy, setBusy] = useState(false);
+  const isChannel = ch.type === "channel";
+  const icon = isChannel ? "📣" : "👥";
+  const strictLabels = ["O'chiq","Rasm+user yo'q","Rasm yo'q","Maksimal"];
+
+  const set = (key,val)=>onSet(ch.id,key,val);
+  const scan = async ()=>{
+    setBusy(true);
+    try { await onScan(ch.id); }
+    finally { setTimeout(()=>setBusy(false), 1200); }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-top">
+        <div className="ci">{icon}</div>
+        <div style={{minWidth:0,flex:1}}>
+          <div className="card-tt">{ch.title}</div>
+          <div className="card-sub">{isChannel ? "Kanal" : "Guruh"} · Himoya {ch.enabled ? "Faol" : "To'xtatilgan"}</div>
+        </div>
+        <div className="blk-count">
+          <b>{ch.blocked}</b>
+          <span>bloklangan</span>
+        </div>
+      </div>
+
+      <div className="row">
+        <span className="lab">🛡 Himoya holati</span>
+        <Switch on={ch.enabled} onClick={()=>set("enabled", !ch.enabled)} />
+      </div>
+
+      <div className="seg">
+        {Object.keys(modeLabels).map(m=>(
+          <button key={m} className={ch.mode===m?"sel":""} onClick={()=>set("mode",m)}>
+            {modeLabels[m]}
+          </button>
+        ))}
+      </div>
+
+      <div className="slider">
+        <div className="hd">
+          <span>Qattiqlik chegarasi</span>
+          <b>{ch.threshold} ball</b>
+        </div>
+        <input type="range" min="20" max="90" step="5" value={ch.threshold}
+          style={{'--p':((ch.threshold-20)/70*100)+'%'}}
+          onChange={e=>set("threshold", parseInt(e.target.value))}/>
+      </div>
+
+      <div className="seg" style={{marginTop:10}}>
+        {strictLabels.map((l,i)=>(
+          <button key={i} className={ch.strict===i?"sel":""} onClick={()=>set("strict",i)}
+            style={{minWidth:0,fontSize:10.5}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div style={{marginTop:11}}>
+        <div style={{fontSize:11.5,color:'var(--hint)',marginBottom:5}}>⚡️ Tezkor profillar (Presets):</div>
+        <div className="presets-box">
+          {Object.keys(presets||{}).map(k=>(
+            <button key={k} onClick={()=>set("preset", k)}>
+              {presets[k].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {ch.pending && ch.pending.count > 0 && (
+        <div className="pending-box">
+          <h4>⚠️ Topilgan soxta akkauntlar: {ch.pending.count} ta</h4>
+          <div className="fakes-list">
+            {(ch.pending.fakes||[]).map((f,idx)=>(
+              <div key={idx} className="fake-item">
+                <span className="name">{f.ism || f.id} {f.username ? `@${f.username}` : ''}</span>
+                <span className="score">{f.ball} ball</span>
+              </div>
+            ))}
+          </div>
+          <div className="pending-actions">
+            <button className="btn-apply" onClick={()=>onScanAction(ch.id, 'apply')}>
+              🗑 Hammasini bloklash ({ch.pending.count})
+            </button>
+            <button className="btn-cancel" onClick={()=>onScanAction(ch.id, 'cancel')}>
+              Bekor qilish
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button className={"scanbtn"+(busy?" busy":"")} onClick={scan}>
+        {busy ? <><span className="spin" style={{width:15,height:15,borderWidth:2}}></span> Boshlanmoqda…</>
+              : <>🧹 Eski nakrutkalarni tekshirish</>}
+      </button>
+    </div>
+  );
+}
+
+function LogsView({channels, onFetchLogs}){
+  const [selectedChat, setSelectedChat] = useState(channels[0]?channels[0].id:"");
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (cid)=>{
+    setLoading(true);
+    try {
+      const data = await onFetchLogs(cid);
+      setLogs(data.events || []);
+    } finally { setLoading(false); }
+  }, [onFetchLogs]);
+
+  useEffect(()=>{
+    if(selectedChat) load(selectedChat);
+  }, [selectedChat, load]);
+
+  const actionLabels = {
+    ban:"🚫 Bloklandi", kick:"👋 Chiqarildi", mute:"🔇 Ovoz o'chirildi",
+    pass:"✅ O'tkazildi", decline:"❌ Rad etildi"
+  };
+
+  return (
+    <div className="fade">
+      <select className="select-ch" value={selectedChat} onChange={e=>setSelectedChat(e.target.value)}>
+        <option value="">Barcha kanallar</option>
+        {channels.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+      </select>
+
+      {loading ? <div style={{textAlign:'center',padding:30}}><div className="spin"></div></div> :
+       logs.length === 0 ? <div className="empty"><div className="em">📜</div><h3>Hodisalar topilmadi</h3><p>Hozircha birorta tekshiruv yoki bloklash qayd etilmagan.</p></div> :
+       logs.map(e=>(
+         <div key={e.id} className="log-item">
+           <div className="log-hd">
+             <div className="log-user">
+               <span>{actionLabels[e.action] || e.action}</span>
+               <span>· {e.name || e.username || e.user_id}</span>
+             </div>
+             <span className="log-time">{e.time_str}</span>
+           </div>
+           <div className="log-badges">
+             <span className="chip score">{e.score} ball</span>
+             {e.username && <span className="chip">@{e.username}</span>}
+             <span className="chip">ID: {e.user_id}</span>
+             {(e.reasons||[]).map((r,i)=><span key={i} className="chip">{r}</span>)}
+           </div>
+         </div>
+       ))}
+    </div>
+  );
+}
+
+function WhitelistView({channels, onFetchWl, onAddWl, onRemoveWl}){
+  const [selectedChat, setSelectedChat] = useState(channels[0]?channels[0].id:"");
+  const [list, setList] = useState([]);
+  const [newId, setNewId] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (cid)=>{
+    if(!cid) return;
+    setLoading(true);
+    try {
+      const data = await onFetchWl(cid);
+      setList(data.whitelist || []);
+    } finally { setLoading(false); }
+  }, [onFetchWl]);
+
+  useEffect(()=>{ if(selectedChat) load(selectedChat); }, [selectedChat, load]);
+
+  const add = async ()=>{
+    const id = parseInt(newId.trim());
+    if(!id) return;
+    const res = await onAddWl(selectedChat, id);
+    if(res) { setList(res.whitelist||[]); setNewId(""); }
+  };
+
+  const remove = async (uid)=>{
+    const res = await onRemoveWl(selectedChat, uid);
+    if(res) setList(res.whitelist||[]);
+  };
+
+  return (
+    <div className="fade">
+      <select className="select-ch" value={selectedChat} onChange={e=>setSelectedChat(e.target.value)}>
+        {channels.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+      </select>
+
+      <div className="wl-add">
+        <input className="input" placeholder="Telegram Foydalanuvchi ID raqami" value={newId}
+          type="number" onChange={e=>setNewId(e.target.value)}/>
+        <button className="btn-add" onClick={add}>+ Qo'shish</button>
+      </div>
+
+      <p style={{fontSize:11.5,color:'var(--hint)',margin:'0 0 12px'}}>
+        ℹ️ Oq ro'yxatdagi akkauntlar hech qachon bloklanmaydi va skaner tekshiruvida e'tiborga olinmaydi.
+      </p>
+
+      {loading ? <div style={{textAlign:'center',padding:30}}><div className="spin"></div></div> :
+       list.length === 0 ? <div className="empty"><div className="em">⚪️</div><h3>Oq ro'yxat bo'sh</h3><p>Ushbu kanal uchun kiritilgan do'stona IDlar yo'q.</p></div> :
+       list.map(uid=>(
+         <div key={uid} className="wl-item">
+           <span style={{fontWeight:600,fontSize:13}}>ID: {uid}</span>
+           <button style={{border:'none',background:'transparent',color:'var(--danger)',cursor:'pointer',fontSize:15}}
+             onClick={()=>remove(uid)}>🗑</button>
+         </div>
+       ))}
+    </div>
+  );
+}
+
+function ScanView({channels, scanReady, scanAccount, onScan, onScanAction}){
+  const [selectedChat, setSelectedChat] = useState(channels[0]?channels[0].id:"");
+  const [busy, setBusy] = useState(false);
+
+  const activeChannel = channels.find(c=>c.id==selectedChat) || channels[0];
+
+  const runScan = async ()=>{
+    if(!selectedChat) return;
+    setBusy(true);
+    try { await onScan(selectedChat); }
+    finally { setTimeout(()=>setBusy(false), 1200); }
+  };
+
+  return (
+    <div className="fade">
+      <div className="card" style={{borderLeft:'3px solid var(--brand)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:12,color:'var(--hint)'}}>Skaner akkaunt holati</div>
+            <div style={{fontSize:14,fontWeight:700,marginTop:2}}>
+              {scanReady ? scanAccount : "Akkaunt ulanmagan"}
+            </div>
+          </div>
+          {scanReady
+            ? <span className="badge ok">✓ Tayyor</span>
+            : <span className="badge warn">login.bat kerak</span>}
+        </div>
+      </div>
+
+      <div className="card">
+        <label style={{fontSize:12,color:'var(--hint)',display:'block',marginBottom:6}}>Kanalni tanlang:</label>
+        <select className="select-ch" style={{marginBottom:12}} value={selectedChat} onChange={e=>setSelectedChat(e.target.value)}>
+          {channels.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+
+        {activeChannel && activeChannel.pending && activeChannel.pending.count > 0 ? (
+          <div className="pending-box">
+            <h4>⚠️ Topilgan soxta akkauntlar: {activeChannel.pending.count} ta</h4>
+            <div className="fakes-list">
+              {(activeChannel.pending.fakes||[]).map((f,idx)=>(
+                <div key={idx} className="fake-item">
+                  <span className="name">{f.ism || f.id} {f.username ? `@${f.username}` : ''}</span>
+                  <span className="score">{f.ball} ball</span>
+                </div>
+              ))}
+            </div>
+            <div className="pending-actions">
+              <button className="btn-apply" onClick={()=>onScanAction(activeChannel.id, 'apply')}>
+                🗑 Hammasini bloklash ({activeChannel.pending.count})
+              </button>
+              <button className="btn-cancel" onClick={()=>onScanAction(activeChannel.id, 'cancel')}>
+                Bekor qilish
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p style={{fontSize:12,color:'var(--hint)',margin:'4px 0 14px',lineHeight:1.45}}>
+            🔍 Ushbu amaliyot kanal ichidagi <b>eski obunachilarni</b> to'liq tahlil qilib chiqadi. 
+            Avval faqat hisobot tuziladi — hech kim o'chirib yuborilmaydi.
+          </p>
+        )}
+
+        <button className={"scanbtn"+(busy?" busy":"")} onClick={runScan}>
+          {busy ? <><span className="spin" style={{width:16,height:16,borderWidth:2}}></span> Tekshiruv boshlanmoqda…</>
+                : <>🚀 Tekshirishni boshlash</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [tab, setTab] = useState("channels");
+  const [state, setState] = useState(null);
+  const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
+  const demo = !tg || !tg.initData;
+
+  const flash = (m)=>{
+    setToast(m);
+    setTimeout(()=>setToast(""), 2200);
+    if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+  };
+
+  const load = useCallback(async ()=>{
+    if(demo){ setState(DEMO); setLoading(false); return; }
+    try {
+      const data = await api('/api/state');
+      setState(data);
+    } catch(e) {
+      flash("Yuklab bo'lmadi: " + (e.message || "xato"));
+    } finally {
+      setLoading(false);
+    }
+  }, [demo]);
+
+  useEffect(()=>{
+    if(tg){
+      tg.ready();
+      tg.expand();
+      applyTheme();
+      if(tg.onEvent) tg.onEvent("themeChanged", applyTheme);
+    }
+    load();
+  }, [load]);
+
+  const onSet = async (chatId, key, value)=>{
+    // optimistik yangilash
+    setState(s=>({...s, channels: s.channels.map(c=>{
+      if(c.id !== chatId) return c;
+      if(key === "preset" && s.presets && s.presets[value]){
+        return {...c, threshold: s.presets[value].thr, strict: s.presets[value].strict};
+      }
+      return {...c, [key]: value};
+    })}));
+
+    if(demo){ flash("Saqlandi (demo)"); return; }
+    try {
+      await api('/api/settings', {chat_id: chatId, key, value});
+      flash("Sozlama saqlandi ✓");
+    } catch(e) {
+      flash("Xatolik: saqlanmadi");
+      load();
+    }
+  };
+
+  const onScan = async (chatId)=>{
+    if(demo){ flash("Demo: tekshiruv boshlanardi"); return; }
+    try {
+      await api('/api/scan', {chat_id: chatId});
+      flash("Tekshiruv boshlandi — natija botga boradi 📩");
+    } catch(e) {
+      if(e.status === 409) flash("Skaner akkaunt ulanmagan");
+      else flash("Boshlab bo'lmadi");
+    }
+  };
+
+  const onScanAction = async (chatId, action)=>{
+    if(demo){
+      flash(action === "apply" ? "Demo: barcha soxtalar bloklandi" : "Demo: bekor qilindi");
+      setState(s=>({...s, channels: s.channels.map(c=>c.id===chatId?{...c, pending:null}:c)}));
+      return;
+    }
+    try {
+      await api('/api/scan_action', {chat_id: chatId, action});
+      flash(action === "apply" ? "Tozalash boshlandi ✓" : "Bekor qilindi");
+      load();
+    } catch(e) {
+      flash("Bajarib bo'lmadi");
+    }
+  };
+
+  const onFetchLogs = async (chatId)=>{
+    if(demo) return {ok:true, events:[
+      {id:1, time_str:"13:00", action:"ban", name:"Bot_Spammer", score:95, reasons:["Yangi akkaunt","Arabcha harf"]},
+      {id:2, time_str:"12:45", action:"pass", name:"Ali Valiyev", score:12, reasons:[]}
+    ]};
+    return await api('/api/logs', {chat_id: chatId});
+  };
+
+  const onFetchWl = async (chatId)=>{
+    if(demo) return {ok:true, whitelist:[89123847, 59918234]};
+    return await api('/api/whitelist', {chat_id: chatId});
+  };
+
+  const onAddWl = async (chatId, userId)=>{
+    if(demo){ flash("Demo: ID qo'shildi"); return {whitelist:[userId]}; }
+    try {
+      const res = await api('/api/whitelist/add', {chat_id: chatId, user_id: userId});
+      flash("Oq ro'yxatga qo'shildi ✓");
+      return res;
+    } catch(e){ flash("Qo'shib bo'lmadi"); return null; }
+  };
+
+  const onRemoveWl = async (chatId, userId)=>{
+    if(demo){ flash("Demo: ID o'chirildi"); return {whitelist:[]}; }
+    try {
+      const res = await api('/api/whitelist/remove', {chat_id: chatId, user_id: userId});
+      flash("Oq ro'yxatdan o'chirildi ✓");
+      return res;
+    } catch(e){ flash("O'chirib bo'lmadi"); return null; }
+  };
+
+  if(loading || !state) {
+    return <div className="wrap" style={{display:'grid',placeItems:'center',height:'80vh'}}>
+      <div className="spin"></div>
+    </div>;
+  }
+
+  const s = state.stats, u = state.user || {};
+  const avatar = u.photo_url
+    ? <img className="ava" src={u.photo_url} alt=""/>
+    : <div className="ava ph">{(u.first_name||"?").slice(0,1)}</div>;
+
+  return (
+    <div className="wrap">
+      {demo && (
+        <div className="note">
+          👁 <div><b>Demo rejim.</b> Haqiqiy ma'lumotlar bot ichidagi Mini App orqali ochilganda ko'rinadi.</div>
+        </div>
+      )}
+
+      <div className="top-bar fade">
+        <div className="logo">🛡</div>
+        <div>
+          <h1>Nakrutka Blocker</h1>
+          <p>Kanal va guruhlar himoyasi</p>
+        </div>
+        <div className="top-actions">
+          <button className="btn-icon" onClick={()=>{ flash("Yangilanmoqda…"); load(); }}>🔄</button>
+          {avatar}
+        </div>
+      </div>
+
+      <div className="badge-bar fade">
+        {state.is_owner && <span className="badge owner">⭐ Bot Egasi</span>}
+        {state.scan_ready
+          ? <span className="badge ok">✓ Skaner: {state.scan_account}</span>
+          : <span className="badge warn">⚠ Skaner ulanmagan</span>}
+      </div>
+
+      <div className="tabs">
+        <button className={"tab-btn"+(tab==="channels"?" active":"")} onClick={()=>setTab("channels")}>
+          <span>🛡</span> Kanallar
+        </button>
+        <button className={"tab-btn"+(tab==="scan"?" active":"")} onClick={()=>setTab("scan")}>
+          <span>🧹</span> Tozalash
+        </button>
+        <button className={"tab-btn"+(tab==="logs"?" active":"")} onClick={()=>setTab("logs")}>
+          <span>📜</span> Loglar
+        </button>
+        <button className={"tab-btn"+(tab==="whitelist"?" active":"")} onClick={()=>setTab("whitelist")}>
+          <span>⚪️</span> Oq ro'yxat
+        </button>
+      </div>
+
+      {tab === "channels" && (
+        <>
+          <div className="stats fade">
+            <div className="tile a">
+              <span className="ic">🚫</span>
+              <div className="n">{s.blocked}</div>
+              <div className="l">Jami bloklangan</div>
+            </div>
+            <div className="tile">
+              <span className="ic">📅</span>
+              <div className="n">{s.blocked_today}</div>
+              <div className="l">Bugun bloklangan</div>
+            </div>
+            <div className="tile b">
+              <span className="ic">✅</span>
+              <div className="n">{s.passed}</div>
+              <div className="l">Haqiqiy a'zolar</div>
+            </div>
+            <div className="tile">
+              <span className="ic">🔍</span>
+              <div className="n">{s.total}</div>
+              <div className="l">Jami ko'rilgan</div>
+            </div>
+          </div>
+
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'4px 4px 10px'}}>
+            <h2 style={{fontSize:14,margin:0,fontWeight:700}}>Mening kanallarim</h2>
+            <span style={{fontSize:12,color:'var(--hint)'}}>{state.channels.length} ta</span>
+          </div>
+
+          {state.channels.length === 0 ? (
+            <div className="empty fade">
+              <div className="em">📭</div>
+              <h3>Ulangan kanal yo'q</h3>
+              <p>Botni kanalingizga admin qilib qo'shing va ushbu sahifani yangilang.</p>
+            </div>
+          ) : (
+            state.channels.map(ch=>(
+              <ChannelCard key={ch.id} ch={ch} modeLabels={state.mode_labels}
+                presets={state.presets} onSet={onSet} onScan={onScan} onScanAction={onScanAction}/>
+            ))
+          )}
+        </>
+      )}
+
+      {tab === "scan" && (
+        <ScanView channels={state.channels} scanReady={state.scan_ready}
+          scanAccount={state.scan_account} onScan={onScan} onScanAction={onScanAction}/>
+      )}
+
+      {tab === "logs" && (
+        <LogsView channels={state.channels} onFetchLogs={onFetchLogs}/>
+      )}
+
+      {tab === "whitelist" && (
+        <WhitelistView channels={state.channels} onFetchWl={onFetchWl}
+          onAddWl={onAddWl} onRemoveWl={onRemoveWl}/>
+      )}
+
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
